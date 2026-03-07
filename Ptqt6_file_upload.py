@@ -9,12 +9,33 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
-KEY=os.getenv('API_KEY')
-print("Key Loaded:",KEY)
-client = OpenAI(
-    api_key=KEY,
-    base_url="https://openrouter.ai/api/v1"
-)
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+
+def get_working_client():
+    if not GEMINI_API_KEY:
+        return None
+    try:
+        client = OpenAI(
+            api_key=GEMINI_API_KEY,
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+        )
+        # Test the key with a minimal request
+        client.chat.completions.create(
+            model="gemini-2.5-flash",
+            messages=[{"role": "user", "content": "test"}],
+            max_tokens=1
+        )
+        print("Working Gemini API key found!")
+        return client
+    except Exception as e:
+        print(f"Key failed: {e}")
+        return None
+
+client = get_working_client()
+
+if client is None:
+    print("ERROR: No working API keys found. Check your .env file.")
+    sys.exit(1)
 
 FLASHCARD_DIR = "FlashcardUploads"
 
@@ -85,7 +106,7 @@ class MainWindow(QWidget):
     def generate_flashcards(self, text):
         try:
             response = client.chat.completions.create(
-                model="openai/gpt-4o",
+                model="gemini-2.5-flash",
                 messages=[
                     {
                         "role": "system",
