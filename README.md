@@ -52,3 +52,6 @@ app.css
           ├── index.css ← global styles
           └── App.jsx   ← your UI
                 └── App.css ← component styles
+
+
+...
