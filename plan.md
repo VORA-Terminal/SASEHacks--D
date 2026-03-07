@@ -12,5 +12,18 @@ UX Process
         - If the user does have flashcard folders but wants to make a new one while already in the learn page, there will be a + button that will give them a shortcut to the import flashcards page
     - User can view the flashcards, flip them, and have it read aloud
     - At the end of the flashcards folder, the user is prompted to play a game with that folder, continue learning, or quit to title screen
-3. User plays the game
-    - 1
+3. User plays the game after learn feature
+    -User spawns in on a trail 
+    -Enemy approaches 
+    -User can choose attacking, cards, and items
+        -User starts with 2 default cards 
+            -Throw rock/sand
+                -(-)10hp
+            -Jab with stick
+                -50% chance enemy misses next attack
+                - (-)5 hp
+        -User can attack
+            -Punch
+            
+            
+    
