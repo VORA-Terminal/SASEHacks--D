@@ -49,9 +49,11 @@ DECK_SELECT → OVERWORLD (3s) → BATTLE (turn-based + messages)
 → CARD_REWARD (tier-based picks) → NEXT_STAGE → loop to OVERWORLD
 ```
 
-## Stacking Debuffs (0/3 quiz, cumulative)
-| Debuff | Per Fail | Cap |
-|--------|----------|-----|
+## Stacking Debuffs (0/3 quiz)
+- Getting 0/3 applies **ONE** random debuff type per occurrence.
+- Effects stack cumulatively up to their respective limits.
+| Debuff Type | Per Fail | Cap |
+|-------------|----------|-----|
 | Enemy damage multiplier | ×2 (doubles) | ×4 |
 | Blindness (player miss chance) | +20% | 60% |
 | Confusion (involuntary skip chance) | +20% | 60% |

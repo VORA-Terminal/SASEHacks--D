@@ -82,11 +82,19 @@ class GameState:
     def apply_quiz_debuff(self):
         """
         Called when player gets 0/3 on quiz.
-        Stacks all three debuffs, each capped.
+        Stacks one random debuff type, up to its cap.
         """
-        # Double damage (caps at 4x)
-        self.damage_multiplier = min(4.0, self.damage_multiplier * 2)
-        # Blindness: +20% miss chance (caps at 60%)
-        self.blindness_chance = min(0.6, self.blindness_chance + 0.2)
-        # Confusion: +20% skip chance (caps at 60%)
-        self.confusion_chance = min(0.6, self.confusion_chance + 0.2)
+        import random
+        debuff_types = ["damage", "blindness", "confusion"]
+        chosen = random.choice(debuff_types)
+
+        if chosen == "damage":
+            # Double damage (caps at 4x)
+            self.damage_multiplier = min(4.0, self.damage_multiplier * 2)
+        elif chosen == "blindness":
+            # Blindness: +20% miss chance (caps at 60%)
+            self.blindness_chance = min(0.6, self.blindness_chance + 0.2)
+        elif chosen == "confusion":
+            # Confusion: +20% skip chance (caps at 60%)
+            self.confusion_chance = min(0.6, self.confusion_chance + 0.2)
+

@@ -15,8 +15,6 @@ STARTER_PAIR_A = [
 STARTER_PAIR_B = [
     Card("Stick Poke", 8, 12, "Gator pokes the enemy with a stick",
          attack_type="physical", rarity="starter", permanent=True),
-    Card("Eye Poke", 8, 12, "Gator pokes the enemy in the eye",
-         attack_type="physical", rarity="starter", permanent=True),
 ]
 
 def get_starter_pair():

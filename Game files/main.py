@@ -171,7 +171,6 @@ def start_post_battle_walk():
     active_screen = "post_battle_walk"
     scroll.start_scroll()
     walk_timer = pygame.time.get_ticks()
-    game_state.advance_enemy()
 
 def show_card_select():
     global active_screen
@@ -657,16 +656,20 @@ while running:
                                 break
 
             elif active_screen == "card_reward":
-                for i, rect in enumerate(reward_rects):
-                    if rect.collidepoint(event.pos):
-                        card = reward_cards[i]
-                        game_state.cards_in_deck.append(card)
-                        cards_picked += 1
-                        reward_cards.pop(i)
-                        reward_rects.pop(i)
-                        if cards_picked >= max_picks:
-                            stage_manager.transition_to(Stage.NEXT_STAGE)
-                        break
+                if max_picks == 0 or not reward_cards:
+                    # Click anywhere to proceed when no cards to pick
+                    stage_manager.transition_to(Stage.NEXT_STAGE)
+                else:
+                    for i, rect in enumerate(reward_rects):
+                        if rect.collidepoint(event.pos):
+                            card = reward_cards[i]
+                            game_state.cards_in_deck.append(card)
+                            cards_picked += 1
+                            reward_cards.pop(i)
+                            reward_rects.pop(i)
+                            if cards_picked >= max_picks:
+                                stage_manager.transition_to(Stage.NEXT_STAGE)
+                            break
 
     # ─────────────────────────────────────────
     #  UPDATE
@@ -706,7 +709,8 @@ while running:
         tier = question_screen.logic.get_performance_tier()
         if tier == "poor" or not reward_cards:
             # No cards to pick — auto-advance after brief delay
-            if pygame.time.get_ticks() - reward_timer > reward_duration:
+            delay = 3500 if tier == "poor" else 2000
+            if pygame.time.get_ticks() - reward_timer > delay:
                 stage_manager.transition_to(Stage.NEXT_STAGE)
 
     # ─────────────────────────────────────────
@@ -781,12 +785,16 @@ while running:
                 debuff_y += 35
             sub = small_font.render("Study harder next time!", True, (200, 200, 200))
             screen.blit(sub, (280, debuff_y + 10))
+            sub2 = tiny_font.render("(Click anywhere to continue)", True, (150, 150, 150))
+            screen.blit(sub2, (300, debuff_y + 40))
         elif tier == "ok":
             screen.fill((20, 20, 40))
-            text = font.render("You need at least 2/3 for a card!", True, (200, 200, 200))
-            screen.blit(text, (160, 240))
-            sub = small_font.render("But you also dodged the debuff...", True, (150, 200, 150))
-            screen.blit(sub, (260, 290))
+            text = font.render("No benefits or debuffs.", True, (200, 200, 200))
+            screen.blit(text, (220, 240))
+            sub = small_font.render("You didn't answer enough correctly to get a card.", True, (150, 200, 150))
+            screen.blit(sub, (160, 290))
+            sub2 = tiny_font.render("(Click anywhere to continue)", True, (150, 150, 150))
+            screen.blit(sub2, (300, 350))
         else:
             picks_left = max_picks - cards_picked
             msg = f"Pick {picks_left} card{'s' if picks_left > 1 else ''}!"

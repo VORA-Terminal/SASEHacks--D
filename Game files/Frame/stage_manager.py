@@ -27,7 +27,7 @@ class StageManager:
         self.next_stage = stage
 
     def check_conditions(self):
-        if self.next_stage is not None:
+        while self.next_stage is not None:
             self.current_stage = self.next_stage
             self.next_stage = None
             if self.current_stage in self.callbacks:
