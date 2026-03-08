@@ -323,9 +323,9 @@ def show_card_reward():
         reward_cards = get_performance_reward(3)
         max_picks = 1
     elif tier == "ok":
-        # 1/3 → no cards, but no debuff
-        reward_cards = []
-        max_picks = 0
+        # 1/3 → pick 1 card
+        reward_cards = get_performance_reward(3)
+        max_picks = 1
     elif tier == "poor":
         # 0/3 → no cards, stack debuff
         reward_cards = []
@@ -943,11 +943,9 @@ while running:
                             cards_picked += 1
                             reward_cards.pop(i)
                             reward_rects.pop(i)
-                            if card.rarity in ("rare", "super_rare"):
+                            if cards_picked >= max_picks:
                                 reward_close_pending = True
                                 reward_close_timer = pygame.time.get_ticks()
-                            elif cards_picked >= max_picks:
-                                stage_manager.transition_to(Stage.NEXT_STAGE)
                             break
 
     # ─────────────────────────────────────────
@@ -1045,10 +1043,10 @@ while running:
         if battle_layout:
             arena = battle_layout["arena"]
             player.rect.x = arena.left + int(arena.width * 0.18)
-            player.rect.y = arena.top + int(arena.height * 0.62) - 10
+            player.rect.y = arena.top + int(arena.height * 0.62) + 10
         else:
             player.rect.x = int(sw * 0.18)
-            player.rect.y = int(sh * 0.42) - 10
+            player.rect.y = int(sh * 0.42) + 10
         player.draw(screen)
 
         if active_screen == "battle" and enemy:
@@ -1059,11 +1057,10 @@ while running:
             if battle_layout:
                 arena = battle_layout["arena"]
                 enemy.rect.x = arena.left + int(arena.width * 0.70)
-                # Keep both sprites aligned on the same vertical line.
-                enemy.rect.y = player.rect.y - 15
+                enemy.rect.y = arena.top + int(arena.height * 0.52)
             else:
                 enemy.rect.x = int(sw * 0.68)
-                enemy.rect.y = player.rect.y - 15
+                enemy.rect.y = int(sh * 0.42)
             enemy.draw(screen)
 
         if active_screen == "battle":
