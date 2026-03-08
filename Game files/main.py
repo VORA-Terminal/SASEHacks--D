@@ -319,6 +319,14 @@ def process_battle_turn(card_index):
 
     card = drawn_cards[card_index]
 
+    # Check cooldown
+    if card.cooldown_remaining > 0:
+        msg_queue.push_info(f"{card.name} is on cooldown! ({card.cooldown_remaining} turns)")
+        return
+
+    # Put on cooldown
+    card.cooldown_remaining = card.cooldown
+
     # Confusion debuff check — random involuntary skip
     if game_state.confusion_chance > 0 and random.random() < game_state.confusion_chance:
         msg_queue.push_effect("You're confused and can't act!")
@@ -380,6 +388,10 @@ def process_battle_turn(card_index):
         game_state.poison_turns = 3
         msg_queue.push_effect(f"{enemy.name} was POISONED!")
 
+    if card.effect == "bleed" and card.roll_effect():
+        game_state.bleed_active = True
+        msg_queue.push_effect(f"{enemy.name} is BLEEDING!")
+
     if card.effect == "stun" and card.roll_effect():
         enemy_stunned = True
         msg_queue.push_effect(f"{enemy.name} was STUNNED!")
@@ -407,6 +419,15 @@ def process_battle_turn(card_index):
 def _do_enemy_turn():
     if not enemy or not enemy.is_alive():
         return
+
+    if game_state.bleed_active:
+        bleed_dmg = max(1, int(enemy.max_hp * 0.10))
+        enemy.take_damage(bleed_dmg)
+        msg_queue.push_effect(f"{enemy.name} took {bleed_dmg} BLEED damage!")
+        msg_queue.push_hp(f"Enemy HP: {enemy.hp}/{enemy.max_hp}")
+        if not enemy.is_alive():
+            msg_queue.push_info(f"{enemy.name} bled out!")
+            return
 
     attack = enemy.choose_attack()
     atk_data, damage, missed = enemy.execute_attack(attack)
@@ -463,6 +484,11 @@ def _do_enemy_turn():
 
     if player.hp <= 0:
         msg_queue.push_info("You were defeated...")
+
+    # Tick down cooldowns at the end of enemy turn
+    for c in game_state.cards_in_deck:
+        if c.cooldown_remaining > 0:
+            c.cooldown_remaining -= 1
 
 
 # ─────────────────────────────────────────────
@@ -546,6 +572,10 @@ def _draw_card(screen, card, rect, reward_mode=False):
     if card.permanent:
         perm_text = pygame.font.SysFont(None, 16).render("PERM", True, (255, 255, 255))
         screen.blit(perm_text, (rect.x + 100, rect.y + 100))
+
+    if card.cooldown_remaining > 0 and not reward_mode:
+        cd_text = pygame.font.SysFont(None, 24).render(f"CD: {card.cooldown_remaining}", True, (255, 0, 0))
+        screen.blit(cd_text, (rect.x + 40, rect.y + 85))
 
     if reward_mode:
         if card.rarity == "super_rare":
@@ -669,22 +699,7 @@ while running:
         # ── REVIVAL QUIZ ──
         elif active_screen == "revival_quiz":
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if revival_show_result:
-                    # Click to proceed after result
-                    total = len(revival_questions) if revival_questions else 1
-                    ratio = revival_score / total
-                    if ratio >= 0.7:
-                        # Revive! Restore player to full HP and re-enter battle
-                        player.hp = player.max_hp
-                        game_state.has_revived = True
-                        game_state.revival_available = False
-                        game_state.all_wrong_questions = []
-                        game_state.reset_battle_effects()
-                        msg_queue.push_info("You've been revived with full HP! Fight on!")
-                        stage_manager.transition_to(Stage.BATTLE)
-                    else:
-                        stage_manager.transition_to(Stage.GAME_OVER)
-                else:
+                if not revival_show_result:
                     # Answer a revival question
                     for i, rect in enumerate(revival_choice_rects):
                         if rect.collidepoint(event.pos):
@@ -742,6 +757,29 @@ while running:
 
     if active_screen == "question_wave":
         question_screen.update()
+
+    if active_screen == "revival_quiz":
+        if revival_show_result:
+            if pygame.time.get_ticks() - revival_result_timer > 2000:
+                total = len(revival_questions) if revival_questions else 1
+                ratio = revival_score / total
+                if ratio >= 0.7:
+                    # Revive! Restore player to full HP and re-enter battle
+                    player.hp = player.max_hp
+                    game_state.has_revived = True
+                    game_state.revival_available = False
+                    game_state.all_wrong_questions = []
+                    
+                    # Reset only player debuffs/status, preserving enemy conditions
+                    game_state.dodge_active = False
+                    game_state.charging_card = None
+                    game_state.player_skip_turns = 0
+                    game_state.player_damage_modifier = 1.0
+                    
+                    msg_queue.push_info("You've been revived with full HP! Fight on!")
+                    stage_manager.transition_to(Stage.BATTLE)
+                else:
+                    stage_manager.transition_to(Stage.GAME_OVER)
 
     if active_screen == "overworld":
         if pygame.time.get_ticks() - overworld_timer > overworld_duration:

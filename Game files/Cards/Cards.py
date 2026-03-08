@@ -3,21 +3,23 @@ import random
 class Card:
     def __init__(self, name, damage_min, damage_max, description="",
                  attack_type="physical", effect=None, effect_chance=0.0,
-                 rarity="common", permanent=False, charge_turns=0):
+                 rarity="common", permanent=False, charge_turns=0, cooldown=0):
         self.name = name
         self.damage_min = damage_min
         self.damage_max = damage_max
         self.description = description
         self.attack_type = attack_type      # "physical", "ranged", "defensive", "special"
-        self.effect = effect                # None, "poison", "dodge", "charge", "instakill"
+        self.effect = effect                # None, "poison", "dodge", "charge", "instakill", "bleed"
         self.effect_chance = effect_chance   # 0.0 to 1.0
         self.rarity = rarity                # "starter", "common", "rare"
         self.permanent = permanent          # True = cannot be replaced/discarded
         self.charge_turns = charge_turns    # 0 = instant, >0 = takes that many turns to charge
+        self.cooldown = cooldown            # 0 = no cooldown, >0 = turns before it can be used again
         
         # Runtime state
         self.charging = False
         self.charge_remaining = 0
+        self.cooldown_remaining = 0
         
     def roll_damage(self):
         if self.damage_min == self.damage_max:
@@ -49,3 +51,4 @@ class Card:
         """Reset runtime state."""
         self.charging = False
         self.charge_remaining = 0
+        self.cooldown_remaining = 0

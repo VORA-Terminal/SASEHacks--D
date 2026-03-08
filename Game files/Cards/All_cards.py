@@ -25,10 +25,10 @@ def get_starter_pair():
     return [
         Card(card_a.name, card_a.damage_min, card_a.damage_max, card_a.description,
              card_a.attack_type, card_a.effect, card_a.effect_chance,
-             card_a.rarity, card_a.permanent, card_a.charge_turns),
+             card_a.rarity, card_a.permanent, card_a.charge_turns, card_a.cooldown),
         Card(card_b.name, card_b.damage_min, card_b.damage_max, card_b.description,
              card_b.attack_type, card_b.effect, card_b.effect_chance,
-             card_b.rarity, card_b.permanent, card_b.charge_turns),
+             card_b.rarity, card_b.permanent, card_b.charge_turns, card_b.cooldown),
     ]
 
 # =============================================
@@ -36,11 +36,11 @@ def get_starter_pair():
 # =============================================
 
 COMMON_CARDS = [
-    Card("Tail Whip", 10, 35, "Gator whips with his tail",
+    Card("Tail Whip", 15, 35, "Gator whips with his tail",
          attack_type="physical", rarity="common"),
-    Card("Gator Bite", 10, 25, "Gator chomps on the enemy",
-         attack_type="physical", rarity="common"),
-    Card("Scratch", 12, 20, "Gator scratches the enemy",
+    Card("Gator Bite", 10, 25, "Gator chomps on the enemy — 15% chance to bleed",
+         attack_type="physical", effect="bleed", effect_chance=0.15, rarity="common"),
+    Card("Scratch", 10, 20, "Gator scratches the enemy",
          attack_type="physical", rarity="common"),
     Card("Snot Bubble", 10, 20, "Gator spits a bubble of snot — chance of poison",
          attack_type="ranged", effect="poison", effect_chance=0.3, rarity="common"),
@@ -69,7 +69,7 @@ RARE_CARDS = [
 
 SUPER_RARE_CARDS = [
     Card("Chud Attack", 9999, 9999, "Gator pulls out his laptop and builds a hackathon winner — instakill",
-         attack_type="special", effect="instakill", effect_chance=1.0, rarity="super_rare"),
+         attack_type="special", effect="instakill", effect_chance=1.0, rarity="super_rare", cooldown=2),
 ]
 
 # =============================================
@@ -83,7 +83,7 @@ def _copy_card(template):
     return Card(template.name, template.damage_min, template.damage_max,
                 template.description, template.attack_type, template.effect,
                 template.effect_chance, template.rarity, template.permanent,
-                template.charge_turns)
+                template.charge_turns, template.cooldown)
 
 def get_reward_pool(count=3):
     """
