@@ -71,8 +71,8 @@ ENEMY_TEMPLATES = [
         "attacks": [
             make_attack("Coffin Slam", 25,
                         description="Crashes a segment into you!"),
-            make_attack("Confusion", 0, effect="skip_turn", effect_value=2,
-                        description="You become confused and can't move for 2 turns!"),
+            make_attack("Confusion", 0, miss_chance=0.65, effect="skip_turn", effect_value=1,
+                        description="You become confused and can't move for 1 turn!"),
         ],
     },
 

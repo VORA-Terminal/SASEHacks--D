@@ -15,6 +15,7 @@ class GameState:
         self.poison_active = False
         self.poison_turns = 0
         self.poison_damage = 5
+        self.bleed_active = False
         self.charging_card = None
 
         # Turn-based combat state
@@ -58,6 +59,7 @@ class GameState:
         self.dodge_active = False
         self.poison_active = False
         self.poison_turns = 0
+        self.bleed_active = False
         self.charging_card = None
         self.player_skip_turns = 0
         self.player_damage_modifier = 1.0
