@@ -427,7 +427,8 @@ def process_battle_turn(card_index):
 
     # Special card effects
     if card.effect == "instakill":
-        enemy.hp = 0
+        if enemy:
+            enemy.take_damage(max(1, enemy.hp))
         msg_queue.push(f"You used {card.name}! INSTAKILL!", MSG_ATTACK)
         return
 
@@ -848,26 +849,41 @@ def _draw_revival_quiz(screen):
         screen.blit(surf, (margin, q_y))
         q_y += int(30 * sf)
 
+    choices = q.get("choices", [])
     revival_choice_rects = []
     y_offset = max(int(sh * 0.35), q_y + int(15 * sf))
-    mc_font = _font(int(24 * sf))
-    for i, choice in enumerate(q.get("choices", [])):
+    available_h = max(80, sh - y_offset - int(12 * sf))
+    count = max(1, len(choices))
+    row_gap = max(4, int(6 * sf))
+    max_row_h = max(34, (available_h - (count - 1) * row_gap) // count)
+    mc_font = _font(min(int(24 * sf), 18))
+    line_step = max(14, mc_font.get_height() + int(3 * sf))
+
+    for i, choice in enumerate(choices):
         wrapped = _wrap_text(f"{i+1}. {choice}", mc_font, content_w - int(30 * sf))
-        box_h = max(int(40 * sf), len(wrapped) * int(26 * sf) + int(16 * sf))
+        max_lines = max(1, (max_row_h - int(12 * sf)) // line_step)
+        wrapped = wrapped[:max_lines]
+        if len(_wrap_text(f"{i+1}. {choice}", mc_font, content_w - int(30 * sf))) > max_lines and wrapped:
+            wrapped[-1] = wrapped[-1].rstrip() + "..."
+        box_h = max(int(34 * sf), len(wrapped) * line_step + int(12 * sf))
+        if y_offset + box_h > sh - int(8 * sf):
+            box_h = max(24, sh - int(8 * sf) - y_offset)
         rect = pygame.Rect(margin, y_offset, content_w, box_h)
 
         hover = rect.collidepoint(pygame.mouse.get_pos())
         pygame.draw.rect(screen, (80, 40, 40) if hover else (60, 30, 30), rect, border_radius=6)
         pygame.draw.rect(screen, (255, 200, 100) if hover else (150, 100, 60), rect, 2, border_radius=6)
 
-        text_y = y_offset + int(8 * sf)
+        text_y = y_offset + int(6 * sf)
         for line in wrapped:
+            if text_y + line_step > rect.bottom - int(4 * sf):
+                break
             surf = mc_font.render(line, True, (255, 255, 255))
             screen.blit(surf, (margin + int(15 * sf), text_y))
-            text_y += int(26 * sf)
+            text_y += line_step
 
         revival_choice_rects.append(rect)
-        y_offset += box_h + int(8 * sf)
+        y_offset += box_h + row_gap
 
 
 # ─────────────────────────────────────────────
@@ -1035,9 +1051,9 @@ while running:
         scroll.draw_background(screen, current_bg)
         battle_layout = _get_battle_layout(screen) if active_screen == "battle" else None
         if battle_layout:
-            _draw_panel(screen, battle_layout["top"], fill=(8, 12, 20), border=(145, 170, 195), alpha=220)
-            _draw_panel(screen, battle_layout["card_panel"], fill=(10, 10, 16), border=(170, 170, 185), alpha=225)
-            _draw_panel(screen, battle_layout["message_panel"], fill=(12, 10, 20), border=(210, 210, 220), alpha=230)
+            _draw_panel(screen, battle_layout["top"], fill=(9, 28, 36), border=(94, 150, 170), alpha=205)
+            _draw_panel(screen, battle_layout["card_panel"], fill=(8, 24, 32), border=(84, 138, 158), alpha=210)
+            _draw_panel(screen, battle_layout["message_panel"], fill=(10, 32, 40), border=(112, 168, 186), alpha=215)
 
         # Position player and enemy relative to screen
         if battle_layout:

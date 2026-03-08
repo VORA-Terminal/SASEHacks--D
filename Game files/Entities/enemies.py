@@ -45,9 +45,12 @@ def _pick_enemy_sprite_path(enemy_name):
         "tombworm": "worm.png",
         "thewarden": "warden.png",
         "warden": "warden.png",
+        "thecube": os.path.join(_ASSET_DIR, "cube.png"),
+        "cube": os.path.join(_ASSET_DIR, "cube.png"),
     }
     if norm_name in overrides:
-        p = os.path.join(_ENEMY_SPRITE_DIR, overrides[norm_name])
+        raw = overrides[norm_name]
+        p = raw if os.path.isabs(raw) else os.path.join(_ENEMY_SPRITE_DIR, raw)
         _enemy_name_sprite_cache[norm_name] = p if os.path.exists(p) else None
         return _enemy_name_sprite_cache[norm_name]
 
@@ -125,6 +128,8 @@ class Enemy:
         if self.hp > 0:
             return False
         if self._death_anim_start == 0:
+            # Safety: if HP was set directly to 0, start death animation now.
+            self._death_anim_start = pygame.time.get_ticks()
             return False
         return pygame.time.get_ticks() - self._death_anim_start >= self._death_anim_ms
 
@@ -286,7 +291,12 @@ class Enemy:
                 surf.blit(fnt.render(text, True, (0, 0, 0)), (ox+dx, oy+dy))
             surf.blit(fnt.render(text, True, (255, 255, 255)), pos)
 
-        # Put HP numbers on top.
-        _outlined_enemy(screen, f"HP: {self.hp}/{self.max_hp}", hp_font,
-                        (draw_rect.x, draw_rect.top - 38))
-        _outlined_enemy(screen, self.name, name_font, (draw_rect.x, draw_rect.bottom + 5))
+        # Center HP and name relative to the enemy body.
+        hp_txt = f"HP: {self.hp}/{self.max_hp}"
+        hp_surf = hp_font.render(hp_txt, True, (255, 255, 255))
+        _outlined_enemy(screen, hp_txt, hp_font,
+                        (draw_rect.centerx - hp_surf.get_width() // 2, draw_rect.top - 38))
+
+        name_surf = name_font.render(self.name, True, (255, 255, 255))
+        _outlined_enemy(screen, self.name, name_font,
+                        (draw_rect.centerx - name_surf.get_width() // 2, draw_rect.bottom + 5))
