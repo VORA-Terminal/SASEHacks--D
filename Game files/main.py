@@ -89,7 +89,7 @@ def _font(size):
         try:
             _font_cache[size] = pygame.font.Font(_UI_FONT_PATH, px_size)
         except Exception:
-            _font_cache[size] = pygame.font.SysFont(None, px_size)
+            _font_cache[size] = pygame.font.Font(None, px_size)
     return _font_cache[size]
 
 # Base fonts (800×600 equivalents — use _font(int(48*sf)) etc. for dynamic code)

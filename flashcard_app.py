@@ -63,7 +63,7 @@ def _compute_scale():
     dpi_scale = logical_dpi / 96.0
     return max(0.6, min(2.0, (res_scale + dpi_scale) / 2.0))
 
-def get_font(size=10, bold=False):
+def get_font(size=10, bold=True):
     scale = _compute_scale()
     scaled_size = max(1, round((size + SIZE_OFFSET) * scale))
     f = QFont(PIXEL_FONT, scaled_size)
