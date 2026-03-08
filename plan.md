@@ -44,26 +44,26 @@ ENEMIES
 
 -- Easy --
 Sludge : A slimeball with one eye
-- Can throw slime, halt the user for one turn, 5 damage
+- Can throw slime, halt the user for one turn, 12 damage
 - Can Disgust the user, decreasing the users attack on the next turn
-- Health (50-75)
+- Health (20)
 
 Natbat : A fast bat
 - Every attack has a 20% chance to miss
-- Can sky dive attack (10 damage)
-- Can Bite (5 damage)
-- Health (30-40)
+- Can sky dive attack (15 damage)
+- Can Bite (10 damage)
+- Health (25)
 
 Medium
 Vexshroom - A mushroom with legs that can cast spells
 - Can doze, user skips a turn
-- Can cast a vine spell that drains from the user and gives it to the enemy (15 damage)
-- Health (40-45)
+- Can cast a vine spell that drains from the user and gives it to the enemy (5 damage)
+- Health (35)
 
 Tombworm - A worm with burrowing ability
-- Can Coffin Slam — crashes a segment into you (10 damage)
+- Can Coffin Slam — crashes a segment into you (25 damage)
 - Confusion - The user becomes confused and can not move for 2 turns
-- Health (60)
+- Health (40)
 
 Hard
 The Warden - An armored guard that weilds keys as a weapon
@@ -77,5 +77,6 @@ The Cube - Nobody knows what it is. Nobody asks.
 Can Corner Jab — strikes with a sharp edge (40 damage)
 Can Flatten — slowly rolls toward you, massive but slow (50 damage, 30% chance to miss)
 Can Rotate — skips a turn, but all your attacks deal half damage next turn for some reason
-Health (200)
+Health (180)
+
 
