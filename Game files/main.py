@@ -9,6 +9,7 @@ from Frame.game_state import GameState
 from Entities.player import Player
 from Entities.enemies import Enemy
 from Cards.Cards import Card
+from Cards.All_cards import get_reward_pool
 from question_wave.question_controller import QuestionScreen
 import random
 
@@ -41,6 +42,9 @@ card_rects = []
 reward_cards = []
 reward_rects = []
 cards_picked = 0
+battle_log_text = ""   # Feedback text shown during battle
+log_timer = 0
+enemy_stunned = False   # True = enemy skips next attack
 
 # Callback functions
 def start_overworld():
@@ -51,21 +55,37 @@ def start_overworld():
     overworld_timer = pygame.time.get_ticks()
 
 def start_battle():
-    global active_screen, enemy, drawn_cards, card_rects
+    global active_screen, enemy, drawn_cards, card_rects, battle_log_text
     active_screen = "battle"
     scroll.stop_scroll()
     enemy = Enemy("Slime", 100, 100, 10, x=600, y=300)
+    battle_log_text = ""
+    enemy_stunned = False
+    
+    # Reset effect state for new battle
+    game_state.dodge_active = False
+    game_state.poison_active = False
+    game_state.poison_turns = 0
+    game_state.charging_card = None
     
     # Draw up to 3 cards from deck
     deck_copy = game_state.cards_in_deck.copy()
     random.shuffle(deck_copy)
     drawn_cards = deck_copy[:3]
     
-    # Calculate rects for drawing and clicking
+    # Recalculate card rects
+    _recalc_card_rects()
+
+def _recalc_card_rects():
+    global card_rects
     card_rects = []
-    start_x = 150
-    for i in range(len(drawn_cards)):
-        rect = pygame.Rect(start_x + (i * 160), 450, 140, 120)
+    total = len(drawn_cards)
+    card_w, card_h = 140, 120
+    gap = 10
+    total_w = total * card_w + (total - 1) * gap
+    start_x = (800 - total_w) // 2
+    for i in range(total):
+        rect = pygame.Rect(start_x + i * (card_w + gap), 450, card_w, card_h)
         card_rects.append(rect)
 
 def start_post_battle_walk():
@@ -89,18 +109,16 @@ def show_card_reward():
     reward_timer = pygame.time.get_ticks()
     cards_picked = 0
     
-    # Generate 3 random cards
-    reward_cards = [
-        Card("Slash", 15, 20, "Strong attack"),
-        Card("Fireball", 20, 25, "Magic attack"),
-        Card("Quick Hit", 5, 25, "Unpredictable")
-    ]
-    random.shuffle(reward_cards)
+    # Pull from real card pool
+    reward_cards = get_reward_pool(3)
     
     reward_rects = []
-    start_x = 150
+    card_w, card_h = 140, 120
+    gap = 10
+    total_w = 3 * card_w + 2 * gap
+    start_x = (800 - total_w) // 2
     for i in range(len(reward_cards)):
-        rect = pygame.Rect(start_x + (i * 160), 250, 140, 120)
+        rect = pygame.Rect(start_x + i * (card_w + gap), 250, card_w, card_h)
         reward_rects.append(rect)
 
 def show_game_over():
@@ -139,16 +157,59 @@ while running:
                     for i, rect in enumerate(card_rects):
                         if rect.collidepoint(event.pos):
                             card = drawn_cards[i]
+                            
+                            # --- HANDLE SPECIAL EFFECTS ---
+                            if card.effect == "instakill":
+                                enemy.hp = 0
+                                battle_log_text = f"{card.name}! INSTAKILL!"
+                                log_timer = pygame.time.get_ticks()
+                                break
+                            
+                            if card.effect == "dodge":
+                                game_state.dodge_active = True
+                                battle_log_text = f"{card.name}! Dodge ready (50%)"
+                                log_timer = pygame.time.get_ticks()
+                                break
+                            
+                            if card.effect == "multi_hit":
+                                # Water Barrage: fires Water Bubble 2-3 times
+                                hits = random.randint(2, 3)
+                                total_dmg = 0
+                                for _ in range(hits):
+                                    dmg = card.roll_damage()
+                                    total_dmg += dmg
+                                    if enemy:
+                                        enemy.take_damage(dmg)
+                                battle_log_text = f"{card.name} x{hits}! Total: {total_dmg} damage!"
+                                log_timer = pygame.time.get_ticks()
+                                break
+                            
+                            # --- NORMAL DAMAGE ---
                             damage = card.roll_damage()
                             enemy.take_damage(damage)
+                            battle_log_text = f"{card.name} dealt {damage} damage!"
+                            log_timer = pygame.time.get_ticks()
                             
-                            drawn_cards.pop(i)
-                            deck_copy = game_state.cards_in_deck.copy()
-                            random.shuffle(deck_copy)
-                            for c in deck_copy:
-                                if c not in drawn_cards:
-                                    drawn_cards.insert(i, c)
-                                    break
+                            # Poison check
+                            if card.effect == "poison" and card.roll_effect():
+                                game_state.poison_active = True
+                                game_state.poison_turns = 3
+                                battle_log_text += " POISONED!"
+                            
+                            # Stun check
+                            if card.effect == "stun" and card.roll_effect():
+                                enemy_stunned = True
+                                battle_log_text += " STUNNED!"
+                            
+                            # Replace used card (only non-permanent ones cycle)
+                            if not card.permanent:
+                                drawn_cards.pop(i)
+                                deck_copy = [c for c in game_state.cards_in_deck if c not in drawn_cards]
+                                if deck_copy:
+                                    random.shuffle(deck_copy)
+                                    drawn_cards.insert(i, deck_copy[0])
+                                _recalc_card_rects()
+                            
                             break
 
                 # Reward card clicks
@@ -185,7 +246,11 @@ while running:
     if active_screen == "battle":
         if enemy and not enemy.is_alive():
             stage_manager.transition_to(Stage.POST_BATTLE_WALK)
-            enemy = None # clear enemy to prevent double triggering
+            enemy = None
+        else:
+            # Tick poison damage on enemy
+            if game_state.poison_active and game_state.poison_turns > 0 and enemy:
+                pass  # Poison tracked via turns, applied per card click cycle
             
     if active_screen == "post_battle_walk":
         if pygame.time.get_ticks() - walk_timer > walk_duration:
@@ -214,19 +279,56 @@ while running:
             text = font.render(f"Battle! (Select a Card)", True, (255, 0, 0))
             screen.blit(text, (200, 50))
             
+            # Battle log text
+            if battle_log_text:
+                log_surf = pygame.font.SysFont(None, 28).render(battle_log_text, True, (255, 255, 100))
+                screen.blit(log_surf, (200, 90))
+            
             # Draw Cards
             for i, card in enumerate(drawn_cards):
-                rect = card_rects[i]
-                pygame.draw.rect(screen, (200, 200, 200), rect)
-                pygame.draw.rect(screen, (255, 255, 255), rect, 3)
-                
-                # Card Name
-                name_text = pygame.font.SysFont(None, 24).render(card.name, True, (0, 0, 0))
-                screen.blit(name_text, (rect.x + 10, rect.y + 10))
-                
-                # Card Dmg
-                dmg_text = pygame.font.SysFont(None, 20).render(f"Dmg: {card.damage_min}-{card.damage_max}", True, (200, 0, 0))
-                screen.blit(dmg_text, (rect.x + 10, rect.y + 50))
+                if i < len(card_rects):
+                    rect = card_rects[i]
+                    
+                    # Color by rarity
+                    if card.rarity == "super_rare":
+                        bg_color = (150, 50, 200)   # Purple
+                    elif card.rarity == "rare":
+                        bg_color = (180, 140, 50)    # Gold
+                    elif card.rarity == "starter":
+                        bg_color = (120, 120, 180)   # Blue-grey
+                    else:
+                        bg_color = (200, 200, 200)   # Grey
+                    
+                    pygame.draw.rect(screen, bg_color, rect)
+                    pygame.draw.rect(screen, (255, 255, 255), rect, 3)
+                    
+                    # Card Name
+                    name_text = pygame.font.SysFont(None, 22).render(card.name, True, (0, 0, 0))
+                    screen.blit(name_text, (rect.x + 5, rect.y + 5))
+                    
+                    # Attack type
+                    type_text = pygame.font.SysFont(None, 18).render(f"[{card.attack_type}]", True, (80, 80, 80))
+                    screen.blit(type_text, (rect.x + 5, rect.y + 25))
+                    
+                    # Card Dmg
+                    if card.damage_min == card.damage_max:
+                        dmg_str = f"Dmg: {card.damage_min}"
+                    elif card.damage_max == 0:
+                        dmg_str = "No damage"
+                    else:
+                        dmg_str = f"Dmg: {card.damage_min}-{card.damage_max}"
+                    dmg_text = pygame.font.SysFont(None, 18).render(dmg_str, True, (200, 0, 0))
+                    screen.blit(dmg_text, (rect.x + 5, rect.y + 45))
+                    
+                    # Effect label
+                    if card.effect:
+                        eff_text = pygame.font.SysFont(None, 18).render(f"FX: {card.effect}", True, (0, 100, 200))
+                        screen.blit(eff_text, (rect.x + 5, rect.y + 65))
+                    
+                    # Permanent badge
+                    if card.permanent:
+                        perm_text = pygame.font.SysFont(None, 16).render("PERM", True, (255, 255, 255))
+                        screen.blit(perm_text, (rect.x + 100, rect.y + 100))
                 
         elif active_screen == "post_battle_walk":
             text = font.render(f"Enemy Defeated! Walking...", True, (100, 255, 100))
@@ -242,21 +344,48 @@ while running:
     elif active_screen == "card_reward":
         if question_screen.logic.result == "pass":
             text = font.render(f"Pick 2 Cards to Add to Your Deck!", True, (100, 255, 100))
-            screen.blit(text, (150, 150))
+            screen.blit(text, (100, 150))
             
             # Draw Reward Cards
             for i, card in enumerate(reward_cards):
-                rect = reward_rects[i]
-                pygame.draw.rect(screen, (50, 150, 50), rect)
-                pygame.draw.rect(screen, (255, 255, 255), rect, 3)
-                
-                # Card Name
-                name_text = pygame.font.SysFont(None, 24).render(card.name, True, (255, 255, 255))
-                screen.blit(name_text, (rect.x + 10, rect.y + 10))
-                
-                # Card Dmg
-                dmg_text = pygame.font.SysFont(None, 20).render(f"Dmg: {card.damage_min}-{card.damage_max}", True, (200, 255, 200))
-                screen.blit(dmg_text, (rect.x + 10, rect.y + 50))
+                if i < len(reward_rects):
+                    rect = reward_rects[i]
+                    
+                    if card.rarity == "super_rare":
+                        bg_color = (150, 50, 200)    # Purple
+                    elif card.rarity == "rare":
+                        bg_color = (180, 140, 50)    # Gold
+                    else:
+                        bg_color = (50, 150, 50)     # Green
+                    
+                    pygame.draw.rect(screen, bg_color, rect)
+                    pygame.draw.rect(screen, (255, 255, 255), rect, 3)
+                    
+                    name_text = pygame.font.SysFont(None, 22).render(card.name, True, (255, 255, 255))
+                    screen.blit(name_text, (rect.x + 5, rect.y + 5))
+                    
+                    type_text = pygame.font.SysFont(None, 18).render(f"[{card.attack_type}]", True, (200, 200, 200))
+                    screen.blit(type_text, (rect.x + 5, rect.y + 25))
+                    
+                    if card.damage_min == card.damage_max:
+                        dmg_str = f"Dmg: {card.damage_min}"
+                    elif card.damage_max == 0:
+                        dmg_str = "No damage"
+                    else:
+                        dmg_str = f"Dmg: {card.damage_min}-{card.damage_max}"
+                    dmg_text = pygame.font.SysFont(None, 18).render(dmg_str, True, (200, 255, 200))
+                    screen.blit(dmg_text, (rect.x + 5, rect.y + 45))
+                    
+                    if card.effect:
+                        eff_text = pygame.font.SysFont(None, 18).render(f"FX: {card.effect}", True, (100, 200, 255))
+                        screen.blit(eff_text, (rect.x + 5, rect.y + 65))
+                    
+                    if card.rarity == "super_rare":
+                        badge = pygame.font.SysFont(None, 16).render("SUPER RARE", True, (255, 100, 255))
+                        screen.blit(badge, (rect.x + 5, rect.y + 100))
+                    elif card.rarity == "rare":
+                        rare_text = pygame.font.SysFont(None, 16).render("RARE", True, (255, 215, 0))
+                        screen.blit(rare_text, (rect.x + 100, rect.y + 100))
         else:
             # Failed wave, no reward
             text = font.render(f"No rewards this time...", True, (255, 100, 100))
