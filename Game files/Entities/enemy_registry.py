@@ -31,8 +31,8 @@ ENEMY_TEMPLATES = [
         "tier": "easy",
         "hp_range": (20, 20),
         "attacks": [
-            make_attack("Slime Throw", 12, effect="skip_turn", effect_value=1,
-                        description="Throws slime, halting you for one turn!"),
+            make_attack("Squirt", 8, effect="blindness", effect_value=0.20,
+                        description="Squirts goo at you, slowing you down and making you miss more!"),
             make_attack("Disgust", 0, effect="attack_debuff", effect_value=0.5,
                         description="Disgusts you, halving your attack next turn!"),
         ],

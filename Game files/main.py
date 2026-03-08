@@ -415,6 +415,9 @@ def _do_enemy_turn():
         enemy.heal(drain_amount)
         msg_queue.push(f"{enemy.name} used {attack['name']}! Drained {drain_amount} HP!", MSG_ATTACK)
         msg_queue.push_hp(f"Your HP: {player.hp}/{player.max_hp}")
+    elif effect == "blindness" and effect_value:
+        game_state.blindness_chance = min(0.6, game_state.blindness_chance + effect_value)
+        msg_queue.push_effect(f"Your accuracy dropped! ({int(game_state.blindness_chance*100)}% miss chance)")
 
     if player.hp <= 0:
         msg_queue.push_info("You were defeated...")
@@ -616,9 +619,13 @@ while running:
                     total = len(revival_questions) if revival_questions else 1
                     ratio = revival_score / total
                     if ratio >= 0.7:
-                        # Revive!
-                        game_state.revive_player()
-                        msg_queue.push_info("You've been revived! Fight on!")
+                        # Revive! Restore player to full HP and re-enter battle
+                        player.hp = player.max_hp
+                        game_state.has_revived = True
+                        game_state.revival_available = False
+                        game_state.all_wrong_questions = []
+                        game_state.reset_battle_effects()
+                        msg_queue.push_info("You've been revived with full HP! Fight on!")
                         stage_manager.transition_to(Stage.BATTLE)
                     else:
                         stage_manager.transition_to(Stage.GAME_OVER)
@@ -785,16 +792,12 @@ while running:
                 debuff_y += 35
             sub = small_font.render("Study harder next time!", True, (200, 200, 200))
             screen.blit(sub, (280, debuff_y + 10))
-            sub2 = tiny_font.render("(Click anywhere to continue)", True, (150, 150, 150))
-            screen.blit(sub2, (300, debuff_y + 40))
         elif tier == "ok":
             screen.fill((20, 20, 40))
             text = font.render("No benefits or debuffs.", True, (200, 200, 200))
             screen.blit(text, (220, 240))
             sub = small_font.render("You didn't answer enough correctly to get a card.", True, (150, 200, 150))
             screen.blit(sub, (160, 290))
-            sub2 = tiny_font.render("(Click anywhere to continue)", True, (150, 150, 150))
-            screen.blit(sub2, (300, 350))
         else:
             picks_left = max_picks - cards_picked
             msg = f"Pick {picks_left} card{'s' if picks_left > 1 else ''}!"
